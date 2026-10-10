@@ -1144,7 +1144,7 @@ body{
     </div>
     <div class="tab-item" data-tab="flow" data-view="flow">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16v16H4z"/><path d="M8 8h8M8 12h5M8 16h7"/></svg>
-      <span>流程</span>
+      <span>国补上传示例图</span>
     </div>
     <div class="tab-item" data-tab="qa" data-view="qa">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/><path d="M8.5 10.5h5M11 8.5v5"/></svg>
@@ -2180,7 +2180,7 @@ function router(){
   else if(p==='qa')renderQA();
   else if(p==='data')renderData();
   // 同步头部标题
-  const titles={home:'购机通 · 工作台',business:'业务 · 门店操作',flow:'流程 · 审计核销',qa:'常见问答',data:'国补备案价'};
+  const titles={home:'购机通 · 团队工作台',business:'业务模式',flow:'国补上传示例图',qa:'常见问答',data:'数据看板'};
   $('#header-title').textContent=titles[p]||'购机通';
 }
 window.addEventListener('hashchange',router);
