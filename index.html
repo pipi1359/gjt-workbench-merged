@@ -2378,6 +2378,12 @@ setInterval(pollPrice, 30000);
     var cur=el.getAttribute('data-ed-applied');
     if(cur===h) return;
     el.innerHTML=h; el.setAttribute('data-ed-applied',h);
+    // 修复：重建 innerHTML 会中断 .view.active 的 fadeIn 动画，导致视图卡在 opacity:0
+    if(el.classList && el.classList.contains('active')){
+      el.style.animation='none';
+      void el.offsetWidth; // 强制回流，重置动画
+      el.style.animation='';
+    }
   };
 
   /* ---- 加载：localStorage + 云端 ---- */
