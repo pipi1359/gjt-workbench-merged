@@ -2313,6 +2313,16 @@ setInterval(loadApp, 60000);
 setTimeout(pollPrice, 5000);
 setInterval(pollPrice, 30000);
 
+// 修复 mnav 链接 onclick 转义问题
+setTimeout(function(){
+  document.querySelectorAll('.mnav a[onclick]').forEach(function(a){
+    var oc = a.getAttribute('onclick');
+    if(oc && oc.indexOf("\\'") >= 0){
+      a.setAttribute('onclick', oc.replace(/\\'/g, "'"));
+    }
+  });
+}, 100);
+
 </script>
 
 <script>
