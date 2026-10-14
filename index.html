@@ -2669,8 +2669,8 @@ setTimeout(function(){
 
 /* ===== 合并：门店操作总台 面板切换 ===== */
 function swMd(name){
-  var tb={buhuo:'tabB',xiandai:'tabX',fenxiao:'tabF',xiny:'tabY'};
-  var pn={buhuo:'panel-buhuo',xiandai:'panel-xiandai',fenxiao:'panel-fenxiao',xiny:'panel-xiny'};
+  var tb={buhuo:'tabB',xiandai:'tabX',fenxiao:'tabF',xiny:'tabY',kaitong:'tabK'};
+  var pn={buhuo:'panel-buhuo',xiandai:'panel-xiandai',fenxiao:'panel-fenxiao',xiny:'panel-xiny',kaitong:'panel-kaitong'};
   for(var k in tb){document.getElementById(tb[k]).className='tb'+(k===name?' on':'');}
   for(var k in pn){document.getElementById(pn[k]).className='panel'+(k===name?' active':'');}
   var main=document.getElementById('app-main');
