@@ -2169,7 +2169,10 @@ function renderMoshBody(){
   h+='<table class="report-table" style="min-width:720px"><thead><tr><th>型号编码</th><th>商品名称</th><th>规格</th><th>调拨总量</th><th>已卖</th><th>当前库存</th></tr></thead><tbody>';
   f.forEach(function(it){
     var low = it.stock<=0;
-    h+='<tr><td style="white-space:nowrap">'+esc(it.sku)+'</td><td>'+esc(it.name)+'</td><td>'+esc(it.spec)+'</td><td style="text-align:right">'+it.alloc+'</td><td style="text-align:right">'+(it.sold||0)+'</td><td style="text-align:right;font-weight:bold;'+(low?'color:#ff6b6b':'')+'">'+it.stock+'</td></tr>';
+    var hasSold = (it.sold||0)>0;
+    var rowStyle = hasSold ? ' style="background:rgba(255,160,60,0.12)"' : '';
+    var soldStyle = hasSold ? ' style="text-align:right;color:#ff9f43;font-weight:bold"' : ' style="text-align:right"';
+    h+='<tr'+rowStyle+'><td style="white-space:nowrap">'+esc(it.sku)+'</td><td>'+esc(it.name)+'</td><td>'+esc(it.spec)+'</td><td style="text-align:right">'+it.alloc+'</td><td'+soldStyle+'>'+(it.sold||0)+'</td><td style="text-align:right;font-weight:bold;'+(low?'color:#ff6b6b':'')+'">'+it.stock+'</td></tr>';
   });
   h+='</tbody></table></div>';
   el.innerHTML=h;
