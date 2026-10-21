@@ -1506,12 +1506,14 @@ function loadApp(){
 /* ===== 数据看板 ===== */
 let dataTab='price';
 function renderData(){
+  const bodyHtml = dataTab==='mosh' ? renderMoshTab() : renderPriceTab();
   const html=`
-    <div class="section-title"><span class="bar"></span>国补备案价</div>
+    <div class="section-title"><span class="bar"></span>数据看板</div>
     <div class="chip-scroll" style="margin-bottom:12px">
-      <div class="chip active" onclick="dataTab='price';renderData()">国补备案价</div>
+      <div class="chip ${dataTab==='price'?'active':''}" onclick="dataTab='price';renderData()">国补备案价</div>
+      <div class="chip ${dataTab==='mosh'?'active':''}" onclick="dataTab='mosh';renderData()">魔狮库存</div>
     </div>
-    <div id="data-body">${renderPriceTab()}</div>
+    <div id="data-body">${bodyHtml}</div>
   `;
   views.data.innerHTML=html;
 }
@@ -2119,6 +2121,57 @@ function renderPriceBody(){
   h+='<span style="font-size:12px;color:#8aa0c8">'+pricePage+' / '+pages+'</span>';
   h+='<button onclick="if(pricePage<pages){pricePage++;renderPriceBody();}" '+(pricePage<pages?'':'disabled')+' style="background:var(--accent);color:#fff;padding:6px 14px;border-radius:8px;border:none;font-size:13px;cursor:pointer">下一页</button>';
   h+='</div>';
+  el.innerHTML=h;
+}
+
+/* ===== 魔狮产品库存（从 Supabase workbench_content/mosh_stock 加载） ===== */
+let moshData=null, moshLoading=false, moshKw='';
+function loadMosh(){
+  if(moshLoading||moshData)return;
+  moshLoading=true;
+  fetch(SUPA_URL+'/rest/v1/workbench_content?select=content&id=eq.mosh_stock',{headers:priceHdrs()})
+    .then(function(r){ if(!r.ok)throw new Error('HTTP '+r.status); return r.json(); })
+    .then(function(d){
+      if(d&&d.length&&d[0]&&d[0].content){
+        var parsed = typeof d[0].content==='string' ? JSON.parse(d[0].content) : d[0].content;
+        moshData=parsed; moshLoading=false;
+        var cur=(location.hash||'').replace('#','').split('&')[0]||'home';
+        if(cur==='data'&&typeof renderData==='function')renderData();
+      } else { moshLoading=false; }
+    })
+    .catch(function(){ moshLoading=false; });
+}
+function renderMoshTab(){
+  if(!moshData){ loadMosh(); return '<div class="card" style="padding:30px;text-align:center;color:#8aa0c8">魔狮库存加载中…</div>'; }
+  var h='<div class="section-title"><span class="bar"></span>魔狮产品库存</div>';
+  h+='<div class="card" style="margin-bottom:10px;padding:10px 12px">';
+  h+='<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">';
+  h+='<input id="mosh-kw" value="'+esc(moshKw)+'" placeholder="搜索型号 / 名称 / 规格（不区分空格大小写）" oninput="moshKw=this.value;renderMoshBody()" style="flex:1;min-width:150px;background:var(--card);border:1px solid var(--line);border-radius:8px;padding:8px 10px;color:var(--text);font-size:13px">';
+  h+='</div></div>';
+  h+='<div id="mosh-body"></div>';
+  h+='<div class="foot-note">库存 = 调拨出库单总量 − 订单明细已卖 · 更新 '+esc(moshData.generated||'')+'</div>';
+  setTimeout(renderMoshBody, 0);
+  return h;
+}
+function renderMoshBody(){
+  var el=document.getElementById('mosh-body');
+  if(!el)return;
+  var items=moshData.items||[];
+  var kw=moshKw.trim().toLowerCase().replace(/\s+/g,'');
+  var f=items.filter(function(it){
+    if(!kw)return true;
+    var hay=(it.sku+' '+it.name+' '+it.spec).toLowerCase().replace(/\s+/g,'');
+    return hay.indexOf(kw)>=0;
+  });
+  var h='';
+  h+='<div style="font-size:12px;color:#8aa0c8;margin:6px 2px">共 '+f.length+' 个型号 · 调拨总量 '+moshData.total_alloc+' · 已卖 '+moshData.total_sold+' · 当前库存 '+moshData.total_stock+'</div>';
+  h+='<div class="card" style="overflow-x:auto;-webkit-overflow-scrolling:touch">';
+  h+='<table class="report-table" style="min-width:720px"><thead><tr><th>型号编码</th><th>商品名称</th><th>规格</th><th>调拨总量</th><th>已卖</th><th>当前库存</th></tr></thead><tbody>';
+  f.forEach(function(it){
+    var low = it.stock<=0;
+    h+='<tr><td style="white-space:nowrap">'+esc(it.sku)+'</td><td>'+esc(it.name)+'</td><td>'+esc(it.spec)+'</td><td style="text-align:right">'+it.alloc+'</td><td style="text-align:right">'+(it.sold||0)+'</td><td style="text-align:right;font-weight:bold;'+(low?'color:#ff6b6b':'')+'">'+it.stock+'</td></tr>';
+  });
+  h+='</tbody></table></div>';
   el.innerHTML=h;
 }
 
