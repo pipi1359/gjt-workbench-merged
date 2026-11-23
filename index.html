@@ -1141,7 +1141,7 @@ function groupAudit(){
       <div class="audit-grid">
         ${items.map(a=> a.url ? `
           <div class="audit-card" onclick="openViewer('${a.url}','${esc(a.name)} · ${esc(a.desc||'')}')">
-            <img class="a-img" src="${a.url}" alt="${esc(a.name)}" loading="lazy">
+            <img class="a-img" src="${a.url}${a.url.indexOf('?')<0?'?':'&'}v=20261123b" alt="${esc(a.name)}" loading="lazy">
             <div class="a-info">
               <div class="a-name">${esc(a.name)}</div>
               <div class="a-desc">${esc(a.desc||'')}</div>
