@@ -677,5 +677,134 @@ function mdScroll(id){
   }
 }
 </script>
+
+<script>
+/* ===== 页内编辑模式（网址加 ?edit=1 开启） ===== */
+(function(){
+  var TBL='workbench_content', ID='xiandai_root';
+  var SUPA='https://xwwdksbxxhbqnlrvegus.supabase.co';
+  var KEY='sb_publishable_V-PcQl_E8BRf0lTBgE2Q-w_nRznHGDp';
+  var LS='gjt_xiandai_edit_v1';
+  var root=document.querySelector('.md-root'); if(!root) return;
+  var editing=false;
+
+  function hdr(x){var h={apikey:KEY,Authorization:'Bearer '+KEY,'Content-Type':'application/json'};for(var k in (x||{}))h[k]=x[k];return h}
+
+  var st=document.createElement('style');
+  st.textContent=
+   '#xiFab{position:fixed;right:14px;bottom:88px;z-index:9999;width:52px;height:52px;border-radius:50%;border:none;font-size:20px;color:#fff;background:linear-gradient(135deg,#2f6fed,#4f8dff);box-shadow:0 4px 18px rgba(47,111,237,.5);cursor:pointer}'+
+   '#xiFab.on{background:linear-gradient(135deg,#16a34a,#22c55e)}'+
+   '#xiBar{position:fixed;left:0;right:0;bottom:0;z-index:9998;background:#0d1526;border-top:1px solid rgba(255,255,255,.12);padding:10px 12px 14px;display:none;gap:8px;flex-wrap:wrap;align-items:center}'+
+   '#xiBar .tip{flex:1 1 100%;font-size:11.5px;color:#8fa3bf;margin-bottom:2px}'+
+   '#xiBar button{flex:1;min-width:70px;border:none;border-radius:10px;padding:11px 8px;font-size:13px;font-weight:600;cursor:pointer}'+
+   '#xiBar .s{background:#22c55e;color:#fff}#xiBar .x{background:#3b82f6;color:#fff}#xiBar .q{background:#374151;color:#fff}'+
+   '.md-root .card{position:relative}'+
+   '.xi-del{position:absolute;top:6px;right:6px;z-index:9;width:26px;height:26px;border-radius:50%;background:rgba(239,68,68,.92);color:#fff;border:none;font-size:13px;line-height:1;cursor:pointer;padding:0}'+
+   'body.xi-editing [contenteditable="true"]{outline:1px dashed rgba(99,102,241,.75);outline-offset:2px;border-radius:4px;cursor:text}'+
+   '#xiToast{position:fixed;left:50%;bottom:150px;transform:translateX(-50%);z-index:10000;background:rgba(17,26,46,.97);color:#fff;font-size:12.5px;padding:10px 16px;border-radius:10px;opacity:0;transition:.25s;pointer-events:none;border:1px solid rgba(255,255,255,.12)}'+
+   '#xiToast.on{opacity:1}';
+  document.head.appendChild(st);
+
+  var fab=document.createElement('button'); fab.id='xiFab'; fab.textContent='✏️'; fab.title='编辑内容';
+  var bar=document.createElement('div'); bar.id='xiBar';
+  bar.innerHTML='<div class="tip">点文字直接改，卡片右上角 ✕ 可删除整块；改完点保存，同事打开自动同步。</div>'+
+    '<button class="s">💾 保存</button><button class="x">⬇ 导出HTML</button><button class="q">↩ 恢复默认</button>';
+  var tst=document.createElement('div'); tst.id='xiToast';
+  document.body.appendChild(fab); document.body.appendChild(bar); document.body.appendChild(tst);
+
+  function toast(m){tst.textContent=m;tst.classList.add('on');clearTimeout(tst._h);tst._h=setTimeout(function(){tst.classList.remove('on')},1800)}
+
+  function setEditable(on){
+    var els=root.querySelectorAll('h2,h3,p,div.t,div.d,.cap,.warn,.hl,.pill,.vt,.summary-list li');
+    for(var i=0;i<els.length;i++){
+      if(on) els[i].setAttribute('contenteditable','true');
+      else els[i].removeAttribute('contenteditable');
+    }
+    var cards=root.querySelectorAll('.card,.section');
+    for(var j=0;j<cards.length;j++){
+      var c=cards[j], b=null;
+      for(var k=0;k<c.children.length;k++){ if(c.children[k].className==='xi-del'){b=c.children[k];break;} }
+      if(on && !b){
+        b=document.createElement('button'); b.className='xi-del'; b.textContent='✕'; c.appendChild(b);
+        b.addEventListener('click',function(e){
+          e.stopPropagation(); e.preventDefault();
+          if(confirm('删除这一整块内容？')){ this.parentNode.remove(); }
+        });
+      }else if(!on && b){ b.parentNode.removeChild(b); }
+    }
+  }
+
+  function snapshotHtml(){
+    var c=root.cloneNode(true);
+    var eds=c.querySelectorAll('[contenteditable]');
+    for(var i=0;i<eds.length;i++) eds[i].removeAttribute('contenteditable');
+    var ds=c.querySelectorAll('.xi-del');
+    for(var j=0;j<ds.length;j++) ds[j].parentNode.removeChild(ds[j]);
+    return c.innerHTML;
+  }
+
+  function applyHtml(html){ if(!html) return; root.innerHTML=html; }
+
+  function pullLocal(){
+    try{var raw=localStorage.getItem(LS); if(!raw) return; var o=JSON.parse(raw); if(o&&o.html) applyHtml(o.html);}catch(e){}
+  }
+  function pullCloud(){
+    fetch(SUPA+'/rest/v1/'+TBL+'?select=content&id=eq.'+ID,{headers:hdr()})
+      .then(function(r){return r.json()})
+      .then(function(d){
+        if(!d||!d[0]||!d[0].content) return;
+        var o=JSON.parse(d[0].content);
+        if(o&&o.html){ applyHtml(o.html); try{localStorage.setItem(LS,JSON.stringify(o));}catch(e){} }
+      }).catch(function(){});
+  }
+
+  function save(){
+    var html=snapshotHtml();
+    var payload={html:html,ts:Date.now()};
+    try{localStorage.setItem(LS,JSON.stringify(payload));}catch(e){}
+    fetch(SUPA+'/rest/v1/'+TBL,{method:'POST',headers:hdr({'Prefer':'resolution=merge-duplicates'}),body:JSON.stringify([{id:ID,content:JSON.stringify(payload)}])})
+      .then(function(r){ if(!r.ok) throw new Error(r.status); toast('✅ 已保存，同事端自动更新'); })
+      .catch(function(){ toast('⚠️ 云端保存失败，已存本机（可点导出HTML）'); });
+  }
+
+  function exportHtml(){
+    var clone=document.documentElement.cloneNode(true);
+    var eds=clone.querySelectorAll('[contenteditable]');
+    for(var i=0;i<eds.length;i++) eds[i].removeAttribute('contenteditable');
+    var ds=clone.querySelectorAll('.xi-del,.xi-del2');
+    for(var j=0;j<ds.length;j++) ds[j].parentNode.removeChild(ds[j]);
+    ['#xiFab','#xiBar','#xiToast'].forEach(function(s){var e=clone.querySelector(s); if(e) e.parentNode.removeChild(e);});
+    var html='<!DOCTYPE html>\n'+clone.outerHTML;
+    var a=document.createElement('a');
+    a.href=URL.createObjectURL(new Blob([html],{type:'text/html;charset=utf-8'}));
+    a.download='xiandai-edited.html'; a.click();
+    toast('已导出 xiandai-edited.html');
+  }
+
+  function reset(){
+    if(!confirm('恢复到最初版本？本机与云端的自定义内容都会被清除。')) return;
+    try{localStorage.removeItem(LS);}catch(e){}
+    fetch(SUPA+'/rest/v1/'+TBL+'?id=eq.'+ID,{method:'DELETE',headers:hdr()}).catch(function(){});
+    toast('已恢复，正在刷新…');
+    setTimeout(function(){location.reload()},700);
+  }
+
+  fab.addEventListener('click',function(){
+    editing=!editing;
+    fab.className=editing?'on':'';
+    fab.textContent=editing?'✅':'✏️';
+    bar.style.display=editing?'flex':'none';
+    document.body.classList.toggle('xi-editing',editing);
+    setEditable(editing);
+    if(editing) toast('编辑已开启');
+  });
+  bar.querySelector('.s').addEventListener('click',save);
+  bar.querySelector('.x').addEventListener('click',exportHtml);
+  bar.querySelector('.q').addEventListener('click',reset);
+
+  if(location.search.indexOf('edit=1')<0){ fab.style.display='none'; }
+  pullLocal(); pullCloud();
+})();
+</script>
 </body>
 </html>
