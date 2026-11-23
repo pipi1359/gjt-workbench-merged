@@ -738,7 +738,10 @@ function mdScroll(id){
   var top=el.getBoundingClientRect().top - main.getBoundingClientRect().top + main.scrollTop - 24;
   main.scrollTo({top:Math.max(top,0),behavior:'smooth'});
   var nav=document.querySelectorAll('.mnav a');
-  for(var i=0;i<nav.length;i++){nav[i].className='';}
+  for(var i=0;i<nav.length;i++){
+    var oc=nav[i].getAttribute('onclick')||'';
+    nav[i].className = oc.indexOf("'"+id+"'")>-1 ? 'on' : '';
+  }
 }
 </script>
 </body>
