@@ -4,7 +4,33 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0b1220">
+<meta name="referrer" content="no-referrer">
 <title>购机通 · 工作台（业务+门店操作）</title>
+<script>
+/* 强制取最新页面：首次访问若无版本参数，自动追加版本号重载一次（跳过浏览器旧缓存） */
+(function(){
+  try{
+    var V='20261124a';
+    var s=location.search||'';
+    var hasV=/(^|[?&])v=/.test(s);
+    var key='gjt_v_skip_'+V;
+    if(!hasV && !sessionStorage.getItem(key)){
+      sessionStorage.setItem(key,'1');
+      location.replace(location.pathname + (s ? s+'&v='+V : '?v='+V) + (location.hash||''));
+    }
+  }catch(e){}
+})();
+/* 图片加载失败的兜底：显示可读提示，不再是一片空白/黑块 */
+document.addEventListener('error', function(ev){
+  var t=ev.target;
+  if(t && t.tagName==='IMG' && !t.getAttribute('data-failed')){
+    t.setAttribute('data-failed','1');
+    t.style.background='rgba(120,140,180,.12)';
+    t.style.minHeight='80px';
+    t.alt=(t.alt||'图片')+'（加载失败，请检查网络后重试）';
+  }
+}, true);
+</script>
 <style>
 :root{
   --bg:#0b1220;
@@ -2044,10 +2070,28 @@ document.querySelectorAll('.tab-item').forEach(t=>{
 /* ===== 图片查看器 ===== */
 function openViewer(src,cap){
   const v=$('#viewer');
-  $('#viewer-img').src=src;
-  $('#viewer-cap').textContent=cap||'';
+  const img=$('#viewer-img');
+  $('#viewer-cap').textContent=(cap||'')+' · 加载中…';
+  img.onload=function(){ $('#viewer-cap').textContent=cap||''; };
+  img.onerror=function(){
+    if(img.getAttribute('data-retried')!=='1'){
+      img.setAttribute('data-retried','1');
+      img.src=src+(src.indexOf('?')<0?'?':'&')+'r='+Date.now();
+      $('#viewer-cap').textContent=(cap||'')+' · 网络较慢，正在重试…';
+    }else{
+      $('#viewer-cap').textContent=(cap||'')+' · 图片加载失败，请检查网络后点击图片重试';
+    }
+  };
+  img.removeAttribute('data-retried');
+  img.src=src;
   v.classList.add('open');
 }
+$('#viewer-img').addEventListener('click',function(){
+  if(this.getAttribute('data-retried')==='1' && (!this.complete||this.naturalWidth===0)){
+    this.setAttribute('data-retried','0');
+    this.src=this.src.split('?')[0]+'?t='+Date.now();
+  }
+});
 $('#viewer-close').addEventListener('click',()=>$('#viewer').classList.remove('open'));
 $('#viewer').addEventListener('click',e=>{if(e.target===$('#viewer'))$('#viewer').classList.remove('open')});
 
